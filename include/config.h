@@ -11,32 +11,25 @@ private:
 
     bool experimentMode;
     bool helpDisplayed;
-    bool offGrid;
     int iterations;
     int signalLength;
     int signalLengthOriginal;
     bool maximumLikelihood;
-    int lengthFactor;
     int signalSparsity;
     std::vector<int> bins;
     std::vector<int> binOffsets;
     int binsSum;
-    int delaysNb;           // in draft paper : N=CD
-    int chainsNb;           // in draft paper : C=noisy ? log(log(n)) : 1
-    int delaysPerBunchNb;   // in draft paper : D=input[def:2]
+    int delaysNb;
+    int chainsNb;
+    int delaysPerBunchNb;
     bool noisy;
     float SNRdB;
-    float minFourierMagnitude;
-    float offgridSNRdB;
     int phasesNb;
     bool verbose;
-    bool compareWithFFTW;
     bool displayIterationTime;
     bool reconstructSignalInBackEnd;
     bool countSamples;
-    int FFTWstrategy;
     std::vector<double> distribution;
-    bool applyWindowVar;
     int signalSparsityPeeling;
     float maxSNRdB;
     bool defaultDelays;
@@ -44,13 +37,9 @@ private:
     char* outputFile;
     int signalLogLength;
     std::vector<bool**> subsamplingMatrices;
-    // std::vector<int> randomVectorSampleName;
-
-    // int hello;
 
 public:
     Config(int newArgc, char** newArgv);
-    bool isOffTheGrid() const;
     bool isExperimentMode() const;
     int getIterations() const;
     int getSignalLength() const;
@@ -67,23 +56,18 @@ public:
     int getChainsNb() const;
     int getDelaysPerBunchNb() const;
     bool isNoisy() const;
-    float getOffgridSNRdB() const;
-    float getMinFourierMagnitude() const;
     float getSNRdB() const;
     float getMaxSNRdB() const;
     int getPhasesNb() const;
     int getMaxErrorsBeforeQuitting() const;
     bool isVerbose() const; 
-    bool needToCompareWithFFTW() const;
     bool needToDisplayIterationTime() const;
     bool needToReconstructSignalInBackEnd() const;
     bool needToCountSamples() const;
-    int getFFTWstrategy() const;
     void display() const;
     void help();
     bool isHelpDisplayed() const;
     std::vector<double> getDistribution() const;
-    bool applyWindow() const;
     int getSignalLengthOriginal() const;
     char* getInputFile() const;
     char* getOutputFile() const;
@@ -99,7 +83,6 @@ private:
     void setBins(const char* newBins);
     void setMaxErrorsBeforeQuitting();
     void preprocessDistribution(char* newDistribution);
-    void proposedBins(int newRangeSemiLength = 10);
 };
 
 #endif // CONFIG_H

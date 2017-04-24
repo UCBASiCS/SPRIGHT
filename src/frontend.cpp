@@ -1,5 +1,5 @@
 #include "frontend.h"
-#include "helper.h"
+#include "utils.h"
 
 #include <iostream>
 #include <math.h>
@@ -20,8 +20,6 @@ FrontEnd::FrontEnd(Chrono* newChrono, const Config* newConfig, const Input* newI
         for (int delayNb = 0; delayNb < config->getBinsSum(); delayNb++)
             observationMatrix[binAbsoluteIndex][delayNb] = 0;
 
-    samplingPeriods = (ffast_real*) malloc(config->getBinsNb() * sizeof(ffast_real));
-    plans = (fftw_plan*) malloc(config->getBinsNb() * sizeof(fftw_plan));
     computeDelays();
 }
 
@@ -32,14 +30,7 @@ FrontEnd::~FrontEnd()
         free(observationMatrix[binAbsoluteIndex]);
     }
 
-    for (int stage=0; stage<config->getBinsNb(); stage++)
-    {
-        fftw_destroy_plan(plans[stage]);
-    }
-
-    free(plans);
     free(observationMatrix);
-    free(samplingPeriods);
 }
 
 void FrontEnd::process()
@@ -133,30 +124,11 @@ std::vector<int> FrontEnd::getDelays() const
     return delays;
 }
 
-
-std::vector<ffast_complex> fwhtM(std::vector<ffast_complex> input, int n) 
-{
-    std::vector<ffast_complex> a = std::vector<ffast_complex>(input);
-    std::vector<ffast_complex> b = std::vector<ffast_complex>(n);
-    std::vector<ffast_complex> tmp = std::vector<ffast_complex>(n);
-    int i, j, s;
-    for (i = n>>1; i > 0; i>>=1) {
-        for (j = 0; j < n; j++) {
-            s = j/i%2;
-            // b[j]=a[(s?-i:0)+j]+(s?-1:1)*a[(s?0:i)+j];
-            b[j]=a[(s?-i:0)+j];
-            b[j]+= ((ffast_complex) (s?-1:1)) * a[(s?0:i)+j];
-        }
-        tmp = a; a = b; b = tmp;
-    }
-    return a;
-}
-
 void FrontEnd::computeDelays()
 {
     delays.clear();
 
-    if (config->isNoisy() || config->applyWindow()) {
+    if (config->isNoisy()) {
         if (config->needToUseMaximumLikelihoodDetection()) {
             if (config->isVerbose())
                 std::cout << "ML delays" << std::endl;
@@ -204,26 +176,6 @@ void FrontEnd::computeDelays()
         for (int i =0; i < config->getSignalBitLength(); i++) {
             delays.push_back(1<<(config->getSignalBitLength() -1 - i));
         }
-    }
-}
-
-
-ffast_real FrontEnd::window(int i) {
-    if(config->applyWindow())
-    {
-        // Blackman-Nuttall window
-        double a0 = 0.3635819;
-        double a1 = 0.4891775;
-        double a2 = 0.1365995;
-        double a3 = 0.0106411;
-        return (ffast_real) 2 * ( a0
-			          - a1 * cos((2*M_PI*i) / (signalLength-1))
-		                  + a2 * cos((4*M_PI*i) / (signalLength-1))
-			          - a3 * cos((6*M_PI*i) / (signalLength-1)) );
-    }
-    else
-    {
-        return 1;
     }
 }
 

@@ -11,9 +11,9 @@ class BinProcessor: public Step
 private:
     ffast_complex** observationMatrix;
     int signalLength;
-    int delaysNb;           // in draft paper : D=CN
-    int chainsNb;           // in draft paper : C=noisy ? log(log(n)) : 1
-    int delaysPerBunchNb;   // in draft paper : N=input[def:2]
+    int delaysNb;           
+    int chainsNb;
+    int delaysPerBunchNb;
 
     ffast_real minimumEnergy;
 
@@ -26,12 +26,8 @@ private:
     int stage;
     int samplingPattern;
     bool MLdetection;
-    ffast_real twoPiBySignalLength;
-    ffast_real signalLengthByTwoPi;
     ffast_real noise;
     ffast_real* thresholds;
-    ffast_real* weights;
-    ffast_real* angles;
     ffast_complex* directionVector;
     std::vector<int> delays;
 
@@ -50,8 +46,6 @@ private:
     void MLprocess();
     void estimateBinSignal();
     void computeLocation();
-    ffast_real getOmega(int i) const;
-    void computeWeights();
     void computeThresholds();
 };
 

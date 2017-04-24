@@ -4,7 +4,6 @@
 #include "input.h"
 #include "utils.h"
 
-#include <fftw3.h>
 #include <set>
 #include <unordered_map>
 #include <vector>
@@ -21,7 +20,6 @@ private:
     ffast_real signalMagnitude;
     ffast_real realSNR;
     ffast_real noiseStdDeviation;
-    fftw_plan plan;
 
 public:
     ExperimentInput(Chrono* newChrono, const Config* newConfig);
@@ -49,7 +47,7 @@ private:
     void computeFrequencySignal();
     void addNoise();
     void frequencyToTime();
-    void frequencyToTimeUsingFFT(std::vector<int> delays);
+    void frequencyToTimeUsingFWHT(std::vector<int> delays);
 };
 
 #endif // EXPERIMENTINPUT_H

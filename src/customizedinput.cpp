@@ -1,5 +1,7 @@
 #include "input.h"
 #include "customizedinput.h"
+#include "utils.h"
+
 #include <algorithm>
 #include <iostream>
 #include <cmath>
@@ -31,7 +33,7 @@ void CustomizedInput::process(std::vector<int> delays)
 
     findNeededSamples(delays);
     convertFileToTimeSignal();
-    
+
     chrono->stop("Input");
 }
 
@@ -68,17 +70,29 @@ void CustomizedInput::convertFileToTimeSignal()
 
 void CustomizedInput::findNeededSamples(std::vector<int> delays)
 {
-    std::cout << "unfinished" << std::endl;
-    // for (int stage=0; stage<config->getBinsNb(); stage++)
-    // {
-    //     for(auto delayIterator=delays.begin(); delayIterator != delays.end(); ++delayIterator)
-    //     {
-    //         for (int binRelativeIndex=0; binRelativeIndex<config->getOldBinSize(stage); binRelativeIndex++)
-    //         {
-    //             neededSamples.insert(((int) (*delayIterator + binRelativeIndex*config->getSignalLength()/config->getOldBinSize(stage))) % config->getSignalLength());
-    //         }
-    //     }
-    // }
+
+    int signalBitLength = config->getSignalBitLength();
+    for (int c = 0; c < config->getBinsNb(); c++)
+    {
+        int binIndices = config->getSamplingPattern(c);
+
+        int b = config->getBinNumIndices(c);
+        int B = pow(2,b); // number of bins in stage
+
+        for (int delayIndex = 0; delayIndex < config->getDelaysNb(); delayIndex++)
+        {
+            int currDelay = delays[delayIndex];
+
+            std::vector<ffast_complex> binTimeDomain = std::vector<ffast_complex>(B);
+            for (int bin_iter = 0; bin_iter < B; bin_iter++)
+            {
+                int mlInt = mapToInt(bin_iter, b, binIndices, signalBitLength);
+                int signalIndex = currDelay ^ mlInt;
+
+                neededSamples.insert(signalIndex);
+            }
+        }     
+    }
 }
 
 void CustomizedInput::printNonZeroFrequencies() const

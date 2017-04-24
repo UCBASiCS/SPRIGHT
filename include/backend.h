@@ -6,7 +6,6 @@
 #include "step.h"
 #include "utils.h"
 
-#include <fftw3.h>
 #include <set>
 #include <unordered_map>
 
@@ -38,7 +37,6 @@ public:
 private:
     void initialize();
     void peelFrom(int spectralIndex, ffast_complex amplitude, int binIndex);
-    void getClusteredFrequencies();
     int getHash(int stage, int spectralIndex);
 };
 

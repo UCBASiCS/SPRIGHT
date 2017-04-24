@@ -7,7 +7,6 @@
 #include "utils.h"
 #include "output.h"
 
-#include <fftw3.h>
 #include <set>
 #include <vector>
 #include <map>

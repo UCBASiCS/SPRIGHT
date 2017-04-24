@@ -1,11 +1,9 @@
 #include "config.h"
-#include "lcm.h"
 #include "split.h"
-#include "helper.h"
+#include "utils.h"
 
 #include <algorithm>
 #include <assert.h>
-#include <fftw3.h>
 #include <fstream>
 #include <getopt.h>
 #include <iostream>
@@ -23,51 +21,16 @@ Config::Config(int newArgc, char** newArgv):argc(newArgc), argv(newArgv), helpDi
     setDefaultOptions();
 
     setOptionsFromCommandLine();
-    if (defaultDelays){
-        delaysPerBunchNb = getSignalBitLength() + 1;
+
+    if(distribution.size() == 0)
+    {
+      preprocessDistribution((char*) "1");
     }
 
     setBinOffsetsAndBinsSum();
     setSubsamplingMatrices();
 
     maxSNRdB = (maxSNRdB < SNRdB) ? SNRdB : maxSNRdB;
-
-    
-
-    // if the delays are not given as input by the user
-    // and signal is noisy and/or we apply the window
- //    if (defaultDelays && (noisy || applyWindowVar))
- //    {
-	// double effectiveSNR = pow(10,getSNRdB()/10);
-
-	// if ( applyWindowVar )
-	// {
-	//     double mainLobePower = 2 * (  pow(sin(M_PI/2)/sin(M_PI/2/signalLength),2) 
-	// 	                        + pow(sin(3*M_PI/2)/sin(3*M_PI/2/signalLength),2) 
-	// 			        + pow(sin(5*M_PI/2)/sin(5*M_PI/2/signalLength),2)  );
-	//     double signalToNoiseContributionFromOffgrid = mainLobePower / ( pow(signalLength,2) - mainLobePower );
-
-	//     offgridSNRdB = 10 * log10(signalToNoiseContributionFromOffgrid);
-
-	//     effectiveSNR = 1/( 1/effectiveSNR + 1/signalToNoiseContributionFromOffgrid );
-
-	// }
-
-
-	// double delayScaling = 3 * pow(10,getSNRdB()/10)/(1 + 4*pow(10,getSNRdB()/20));
-
-	// double delayScaling = 3 * effectiveSNR / ( 1 + 4 * sqrt(effectiveSNR) );
-
-	// chainsNb = ceil( log(signalLength) / sqrt(delayScaling) );
-    // chainsNb = 1;
-
-	// if (!maximumLikelihood) // Fast search
-	// {
-	//     delaysPerBunchNb = 2 * ceil( pow(log(signalLength),1.0/3.0) / sqrt(delayScaling) );
-	// }
-    // delaysPerBunchNb = getSignalBitLength() + 1;
-
-	// the number of chains should be at least 1
 
 
     chainsNb = (chainsNb >= 1) ? chainsNb : 1;
@@ -80,17 +43,6 @@ Config::Config(int newArgc, char** newArgv):argc(newArgc), argv(newArgv), helpDi
 
 
    assert( signalLength >= signalSparsity );
-   assert( delaysNb >= 2 );
-
-   // assert( delaysNb <= signalLength/getBiggestBin() );
-
-    // in fast search using Kay's method, we need at least
-    // 2 delays within each bunch to calculate the locations
-   if (!maximumLikelihood)
-   {
-       assert( delaysPerBunchNb >= 2 );
-   }
-
 }
 
 void Config::setDefaultOptions()
@@ -101,14 +53,11 @@ void Config::setDefaultOptions()
     signalLengthOriginal = signalLength;
     signalSparsityPeeling = 4;
     signalSparsity = 4;
-    lengthFactor = 1; // n = LCM(Bins)*lengthfactor;
     maximumLikelihood = false;
     countSamples = true;
     delaysPerBunchNb = getSignalBitLength() + 1;
 
     chainsNb = 1;
-    offgridSNRdB = 0;
-    minFourierMagnitude = 1;
 
     /* for experiment mode */
     iterations = 1;
@@ -116,53 +65,21 @@ void Config::setDefaultOptions()
     // Phase = 0 implies phase of non-zero 
     // coefficients is uniformly random in [0,2*pi]. 
     phasesNb = 0; 
-    FFTWstrategy = FFTW_ESTIMATE;
-    compareWithFFTW = false;
     displayIterationTime = false;
     noisy = false;
     SNRdB = 50;
     maxSNRdB = -std::numeric_limits<float>::infinity();
     verbose = false;
     reconstructSignalInBackEnd = false;
-    offGrid = false;
     defaultDelays = true;
     signalLogLength = log2(signalLength);
 
     bins.clear();
-    // int floorThird = (int) (signalLogLength/3);
-    // std::cout<< "FloorThird" << pow(2,3*floorThird)-pow(2,2*floorThird) << std::endl;
-    // bins.push_back(pow(2,floorThird)-1);
-    // if (signalLogLength % 3 == 0) {
-    //     bins.push_back(pow(2,2*floorThird)-pow(2,floorThird));
-    //     bins.push_back(pow(2,3*floorThird)-pow(2,2*floorThird));
-    // }
-    // if (signalLogLength % 3 == 1) {
-    //     bins.push_back(pow(2,2*floorThird)-pow(2,floorThird));
-    //     bins.push_back(pow(2,3*floorThird+1)-pow(2,2*floorThird));
-    // }
-    // if (signalLogLength % 3 == 2) {
-    //     bins.push_back(pow(2,2*floorThird+1)-pow(2,floorThird));
-    //     bins.push_back(pow(2,3*floorThird+2)-pow(2,2*floorThird+1));    
-    // }
-
-    // for (int i =0; i <3; i++) {
-    //     bins.push_back(pow(2,signalLogLength/3)-1); //needs to be generalized to signals not ll%3==0
-    // }
-}
-
-bool Config::isOffTheGrid() const
-{
-    return offGrid;
 }
 
 bool Config::isExperimentMode() const
 {
     return experimentMode;
-}
-
-float Config::getMinFourierMagnitude() const
-{
-    return minFourierMagnitude;
 }
 
 int Config::getIterations() const
@@ -245,11 +162,6 @@ float Config::getSNRdB() const
     return SNRdB;
 }
 
-float Config::getOffgridSNRdB() const
-{
-    return offgridSNRdB;
-}
-
 float Config::getMaxSNRdB() const
 {
     return maxSNRdB;
@@ -266,11 +178,6 @@ bool Config::isVerbose() const
     return verbose;
 }
 
-bool Config::needToCompareWithFFTW() const
-{
-    return compareWithFFTW;
-}
-
 bool Config::needToDisplayIterationTime() const
 {
     return displayIterationTime;
@@ -284,11 +191,6 @@ bool Config::needToReconstructSignalInBackEnd() const
 bool Config::needToCountSamples() const
 {
     return countSamples;
-}
-
-int Config::getFFTWstrategy() const
-{
-    return FFTWstrategy;
 }
 
 int Config::getSignalBitLength() const
@@ -345,7 +247,7 @@ std::cout << chainsNb << " -> delay chain(s)" << std::endl;
 
 if( signalLengthOriginal != signalLength )
 {
-	std::cout << "The signal length is not Chinese Remainder Theorem friendly." << std::endl; 
+	std::cout << "The signal length is not a power of 2." << std::endl; 
 	std::cout << "The last " << (signalLengthOriginal - signalLength) << " samples will be deleted" << std::endl;
 }
 
@@ -354,11 +256,6 @@ for (unsigned int stage=0; stage<bins.size(); stage++)
     std::cout << bins[stage] << " ";
 }
 std::cout << "-> bins" << std::endl;
-
-if (lengthFactor > 1)
-{
-    std::cout << lengthFactor << " -> length factor"  << std::endl;
-}
 
 if (iterations > 1)
 {
@@ -379,11 +276,6 @@ if (reconstructSignalInBackEnd)
     std::cout << "The back-end will reconstruct the full length frequency signal" << std::endl;
 }
 
-if (FFTWstrategy == FFTW_MEASURE)
-{
-    std::cout << "Optimized FFTW plan generation enabled" << std::endl;
-}
-
 if (verbose)
 {
     std::cout << "Verbose mode enabled" << std::endl;
@@ -392,11 +284,6 @@ if (verbose)
     {
         std::cout << "Prompting execution time for each iteration" << std::endl;
     }
-}
-
-if (compareWithFFTW)
-{
-    std::cout << "Comparing with FFTW" << std::endl;
 }
 
 if(distribution.size() > 2) 
@@ -423,14 +310,10 @@ void Config::help()
     << std::endl << std::endl
     << " [-b BINS or --bins BINS]" << std::endl
     << "     Set the bins to use." << std::endl
-    << "     Example: -b \"125 128 243\"."
+    << "     Example: -b \"3 12 48\"."
     << std::endl << std::endl
     << " [-c or --samples]" << std::endl
     << "     Do not count the number of signal samples used in the front-end and display it in the results section."
-    << std::endl << std::endl
-    << " [-d NUM or --delays NUM]" << std::endl
-    << "     Set the number of delays to use in the back-end." << std::endl
-    << "     Note: the following assertions should be true (d >= 2) and (d < n/max(Bins))."
     << std::endl << std::endl
     << " [-e NUM or --chains NUM]" << std::endl
     << "     Set the number of chains to use in the back-end for fast search."
@@ -438,9 +321,6 @@ void Config::help()
     << " [-f FNAME or --file FNAME]" << std::endl
     << "     Input file to use" << std::endl
     << "     Example: -f \"timeSignal.txt\"."
-    << std::endl << std::endl
-    << " [-g NUM or --minmagnitude NUM]" << std::endl
-    << "     Minimum Fourier magnitude that will be recovered. Strongly advised to be entered in offgrid setting."
     << std::endl << std::endl
     << " [-h or --help]" << std::endl
     << "     Displays help."
@@ -457,16 +337,8 @@ void Config::help()
     << "     Enable the maximum likelihood detection." << std::endl
     << "     Note: This may be required when the snr is really low but it will dramatically slow down the execution."
     << std::endl << std::endl
-    << " [-m NUM or --factor NUM]" << std::endl
-    << "     Set the length factor. It is useful for having small bins and large signal length." << std::endl
-    << "     Note: The length of the signal is equal to lcm(Bins)*(length factor)."
-    << std::endl << std::endl
     << " [-n NUM or --length NUM]" << std::endl
     << "     Set the signal length."
-    << std::endl << std::endl
-    << " [-o or --optimize]" << std::endl
-    << "     Create optimized FFTW plans." << std::endl
-    << "     Note: This option should be used only with small n (less than 5000) since creating plans for big signals is slow."
     << std::endl << std::endl
     << " [-r or --reconstruct]" << std::endl
     << "     Force the back-end to reconstruct the full n-length frequency signal." << std::endl
@@ -482,15 +354,6 @@ void Config::help()
     << " [-u DIST or --distribution DIST]" << std::endl
     << "     Enable the non-uniform distribution mode: input the weights of your distribution." << std::endl
     << "     Example: -u \"3 2 1\" will divide your frequency domain in 3, the probability to be in the first third will be 1/2, the next 1/3 and the last 1/6"
-    << std::endl << std::endl
-    << " [-w or --fftw]" << std::endl
-    << "     Compare the execution time of SPRIGHT with FFTW." << std::endl
-    << "     Note: FFTW will be exectuted at each iterarion and this will lead to slower execution." 
-    << std::endl << std::endl
-    << " [-x BINF or --bins_with_factor BINF]" << std::endl
-    << "     Set the bins and the factor length at the same time." << std::endl
-    << "     The syntax is the same than for setting bin but the last value is used for the factor." << std::endl
-    << "     Example: -x \"49 50 51 10\" will set bins to \"49 50 51\" and length factor to 10."
     << std::endl << std::endl
     << " [-z FNAME or --write FNAME]" << std::endl
     << "     Write the output on the choosen file"
@@ -510,24 +373,19 @@ void Config::setOptionsFromCommandLine()
        {"experiment",	 no_argument,	    NULL, 'a'},
        {"bins",	 required_argument, NULL, 'b'},
        {"samples",      no_argument,       NULL, 'c'},
-       {"delays",       required_argument, NULL, 'd'},
        {"chains",       required_argument, NULL, 'e'},
        {"file",         required_argument, NULL, 'f'},
-       {"minmagnitude", required_argument, NULL, 'g'},
        {"write",        required_argument, NULL, 'w'},
        {"help",         no_argument,       NULL, 'h'},
        {"iterations",   required_argument, NULL, 'i'},
        {"sparsity",     required_argument, NULL, 'k'},
        {"ml",           no_argument,       NULL, 'l'},
-       {"factor",       required_argument, NULL, 'm'},
        {"length",       required_argument, NULL, 'n'},
        {"optimize",     no_argument,       NULL, 'o'},
        {"reconstruct",  no_argument,       NULL, 'r'},
        {"snr",          required_argument, NULL, 's'},
        {"distribution", required_argument, NULL, 'u'},
        {"verbose",      no_argument,       NULL, 'v'},
-       {"fftw",         no_argument,       NULL, 'w'},
-       {"maxsnr",       required_argument, NULL, 'x'},
        {0, 0, 0, 0}
    };
 
@@ -535,8 +393,7 @@ void Config::setOptionsFromCommandLine()
 
    while(option != -1)
    {
-        option = getopt_long(argc, argv, "acf:d:e:hg:i:k:b:lm:n:op:rs:tu:vwx:z:", longOptions, NULL); //abfgjuxyz
-        // std::cout << "option: " << (char) option << std::endl;
+        option = getopt_long(argc, argv, "acf:e:hi:k:b:ln:op:rs:tu:vw:z:", longOptions, NULL); //abfgjuxyz
         switch (option)
         {
            case 'a':
@@ -548,18 +405,13 @@ void Config::setOptionsFromCommandLine()
            break;
 
            case 'n':
-           signalLength = atoi(optarg);
            signalLengthOriginal = atoi(optarg);
-           signalLogLength = log2(signalLength);
+           signalLogLength = floor(log2(signalLengthOriginal));
+           signalLength = pow(2,signalLogLength);
            break;
 
            case 'c':
            countSamples = false;
-           break;
-
-           case 'd':
-           delaysPerBunchNb = atoi(optarg);
-           defaultDelays = false;
            break;
 
            case 'e':
@@ -576,10 +428,6 @@ void Config::setOptionsFromCommandLine()
            help();
            break;
 
-           case 'g':
-           minFourierMagnitude = strtof(optarg,0);
-           break;
-
            case 'i':
            iterations = atoi(optarg);
            break;
@@ -593,14 +441,6 @@ void Config::setOptionsFromCommandLine()
            maximumLikelihood = true;
            break;
 
-           case 'm':
-           lengthFactor = atoi(optarg);
-           break;
-
-           case 'o':
-           FFTWstrategy = FFTW_MEASURE;
-           break;
-
            case 'r':
            reconstructSignalInBackEnd = true;
            break;
@@ -608,10 +448,6 @@ void Config::setOptionsFromCommandLine()
            case 's':
            noisy = true;
            SNRdB = strtof(optarg, 0);
-           break;
-
-           case 'x':
-           maxSNRdB = strtof(optarg, 0);
            break;
 
            case 'u':
@@ -624,10 +460,6 @@ void Config::setOptionsFromCommandLine()
 
            case 'v':
            verbose = true;
-           break;
-
-           case 'w':
-           compareWithFFTW = true;
            break;
        }
    }
@@ -648,7 +480,6 @@ void Config::setBins(const char *newBins)
 
 void Config::setBinOffsetsAndBinsSum()
 {
-    // std::sort(bins.begin(), bins.end());
     if (bins.size() == 0) {
         bins.clear();
         int floorThird = (int) (signalLogLength/3);
@@ -728,51 +559,6 @@ void Config::preprocessDistribution(char* newDistribution)
    {
        distribution[i] = distribution[i]/distribution[l-1];
    }
-}
-
-void Config::proposedBins(int newRangeSemiLength) {
-    int F = pow(signalLength,1.0/3.0);
-    int rangeSemiLength = F > newRangeSemiLength ? newRangeSemiLength : F-2;
-    int bestLength = pow(F-rangeSemiLength,3);
-    int p,r,f3;
-    std::vector<int> bestBins,testedBins;
-
-    for (int f1 = F-rangeSemiLength; f1 <= F+rangeSemiLength; ++f1) {
-        testedBins.push_back(f1);
-        p = f1*(F-rangeSemiLength); // p = f1.f2
-
-        for (int f2 = F-rangeSemiLength; f2 <= F+rangeSemiLength; ++f2) {
-            testedBins.push_back(f2);
-            r = floor(((double) signalLength)/((double) p));
-
-            for(int n = p*r; n > bestLength; n-=p) {
-                f3 = n/p;
-                if(f3 <= F+rangeSemiLength && f3 >= F-rangeSemiLength) {
-                    testedBins.push_back(f3);
-
-                    if(areCoprime(testedBins)) {
-                        bestLength = n;
-                        bestBins = testedBins;
-                    }
-
-                    testedBins.pop_back();
-                }
-            }
-            testedBins.pop_back();
-            p += f1;
-        }
-        testedBins.pop_back();
-    }
-
-    bins = bestBins;
-    applyWindowVar = (signalLength != bestLength) || applyWindowVar;
-
-    signalLength = bestLength;
-}
-
-bool Config::applyWindow() const
-{
-    return applyWindowVar;
 }
 
 int Config::getSignalLengthOriginal() const

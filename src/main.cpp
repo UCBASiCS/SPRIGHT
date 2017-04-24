@@ -3,7 +3,6 @@
 #include "experimentinput.h"
 #include "customizedoutput.h"
 #include "experimentoutput.h"
-#include "fftw.h"
 
 #include <stdlib.h>
 #include <time.h>
@@ -11,7 +10,6 @@
 #include <iomanip>
 #include <iostream>
 #include <complex.h>
-#include <fftw3.h>
 
 int main(int argc, char** argv)
 {
@@ -21,7 +19,6 @@ int main(int argc, char** argv)
     // Configurations are set through the command line arguments
     Config* configurations = new Config(argc, argv);
     // This is here measuring how long it takes to generate the input and output
-    // and FFTW if it is asked
     Chrono* mChrono = new Chrono();
 
     // Input object
@@ -73,29 +70,6 @@ int main(int argc, char** argv)
         {
             std::cout << std::setprecision(3) << std::scientific << mChrono->average("Input") << " -> signal generation time"  << std::endl;
         }
-    }
-
-    	
-    if (configurations->needToCompareWithFFTW())
-    {
-        input->process();
-        const std::unordered_map<int,ffast_complex> mymap = input->getTimeSignal();
-
-        ffast_complex* inputSignal = (ffast_complex*) fftw_malloc(configurations->getSignalLength() * sizeof(ffast_complex));
-	
-        for ( auto it = mymap.begin(); it!= mymap.end(); ++it )
-        {
-            inputSignal[it->first] = it->second;
-        }
-      
-        FFTW* fftw = new FFTW(mChrono, configurations, inputSignal);
-        fftw->process();
-	
-        std::cout << std::endl;
-        std::cout << "<===== FFTW =====>" << std::endl;
-        std::cout << std::setprecision(3) << std::scientific << mChrono->average("FFTW") << " -> execution of FFTW"  << std::endl;
-
-        delete fftw;
     }
 
     std::cout << std::endl;

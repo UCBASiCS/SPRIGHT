@@ -6,7 +6,6 @@
 #include "step.h"
 #include "utils.h"
 
-#include <fftw3.h>
 #include <set>
 #include <vector>
 #include <map>

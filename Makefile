@@ -37,8 +37,6 @@ ifeq ($(OS),Darwin)
     CFLAGS += -stdlib=libc++
 endif
 
-OBJFLAGS = -lm -lfftw3
-
 ifeq ($(OS),Linux)
     OBJFLAGS += -lrt
 endif

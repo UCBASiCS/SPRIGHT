@@ -1,6 +1,6 @@
 #include "input.h"
 #include "experimentinput.h"
-#include "helper.h"
+#include "utils.h"
 
 #include <algorithm>
 #include <iostream>
@@ -22,7 +22,6 @@ ExperimentInput::~ExperimentInput()
 void ExperimentInput::process()
 {
     chrono->start("Input");
-    // std::cout<<"right ExperimentInput process" << std::endl;
     neededSamples.clear();
     for (int k = 0; k < config->getSignalLength(); k++)
     {
@@ -31,7 +30,6 @@ void ExperimentInput::process()
 
     nonZeroFrequencies.clear();
     generateNonZeroFrequencies();
-    // printNonZeroFrequencies();
 
     for (auto t = neededSamples.cbegin(); t != neededSamples.cend(); ++t) {
         timeSignal[*t] =0;
@@ -53,11 +51,8 @@ void ExperimentInput::process()
 
 void ExperimentInput::process(std::vector<int> delays)
 {
-    // std::cout<< "new experimentinput process" << std::endl;
-    //not functional
 
     chrono->start("Input");
-    // std::cout <<"correct experimentinput process" << std::endl;
     findNeededSamples(delays);
 
     generateNonZeroFrequencies();
@@ -130,34 +125,9 @@ void ExperimentInput::generateNonZeroFrequencies()
 
     while((int) tempLocations.size() < config->getSignalSparsity())
     {
-        // int tempLocation = ((int) floor(config->getSignalLengthOriginal()*distribution((ffast_real) drand48(), config->getDistribution())))
-        //         % config->getSignalLengthOriginal();
-        int tempLocation = round(rand()%config->getSignalLength());
-	   // std::cout<< tempLocations.size() <<std::endl;
-    	// for off-grid we need guard bands
+        int tempLocation = ((int) floor(config->getSignalLengthOriginal()*distribution((ffast_real) drand48(), config->getDistribution())))
+                % config->getSignalLengthOriginal();
         tempLocations.insert(tempLocation);
-
-    	// if (config->getSignalLengthOriginal() != config->getSignalLength() ) 
-    	// {
-     //            if (tempLocations.count(tempLocation-5)+
-    	// 	tempLocations.count(tempLocation-4)+
-    	//         tempLocations.count(tempLocation-3)+
-    	// 	tempLocations.count(tempLocation-2)+
-    	// 	tempLocations.count(tempLocation-1)+
-    	// 	tempLocations.count(tempLocation+0)+
-    	// 	tempLocations.count(tempLocation+1)+
-    	// 	tempLocations.count(tempLocation+2)+
-    	// 	tempLocations.count(tempLocation+3)+
-    	// 	tempLocations.count(tempLocation+4)+
-    	// 	tempLocations.count(tempLocation+5) == 0)
-    	//     {
-    	// 	tempLocations.insert(tempLocation);
-    	//     }
-    	// }
-    	// else
-    	// {
-    	//     tempLocations.insert(tempLocation);
-    	// }
     }
 
     for(auto it = tempLocations.cbegin(); it != tempLocations.cend(); ++it)
@@ -226,56 +196,9 @@ void ExperimentInput::frequencyToTime()
     }
 }
 
-void ExperimentInput::frequencyToTimeUsingFFT(std::vector<int> delays)
+void ExperimentInput::frequencyToTimeUsingFWHT(std::vector<int> delays)
 {
-    //not functional
-    std::cout << "unfinished" << std::endl;
-
-    // ffast_real w_0 = 2*M_PI/config->getSignalLengthOriginal();
-    // ffast_real w_0d;
-
-    // fftw_plan* plans = (fftw_plan*) malloc(config->getBinsNb() * sizeof(fftw_plan));
-    // ffast_complex* aliasedSpectrum  = (ffast_complex*) fftw_malloc( config->getBiggestBin() * sizeof(ffast_complex) );
-    // ffast_complex* subSampledSignal = (ffast_complex*) fftw_malloc( config->getBiggestBin() * sizeof(ffast_complex) );
-
-    // int stageJumpFactor;
-
-    // // go over each stage
-    // for (int stage=0; stage<config->getBinsNb(); stage++)
-    // {
-    //     // std::cout << "stage " << stage << " --------" << std::endl;
-    //     // std::cout << "binsize " << config->getOldBinSize(stage) << " --------" << std::endl;
-    //     stageJumpFactor = config->getSignalLength() / config->getOldBinSize(stage);
-
-    //     plans[stage] = fftw_plan_dft_1d(config->getOldBinSize(stage), reinterpret_cast<fftw_complex*>(aliasedSpectrum), reinterpret_cast<fftw_complex*>(subSampledSignal), FFTW_BACKWARD, config->getFFTWstrategy());
-
-    //     // go over each delay
-    //     for(auto delayIterator=delays.begin(); delayIterator != delays.end(); ++delayIterator)
-    //     {
-    //         for (int i = 0; i < config->getBiggestBin(); i++)
-    //         {
-    //             aliasedSpectrum[ i ] = 0;
-    //         }
-            
-    //         // std::cout << "delay " << *delayIterator << std::endl;
-    //         w_0d = w_0*(*delayIterator);
-
-    //         // go through the nonzero frequencies
-    //         for (auto f = nonZeroFrequencies.cbegin(); f != nonZeroFrequencies.cend(); ++f)
-    //         {
-    //             aliasedSpectrum[ (f->first)%config->getOldBinSize(stage) ] += (f->second)*std::polar( 1.0,(ffast_real) (w_0d *f->first ) );
-    //         }
-    //         fftw_execute( plans[stage] );
-
-    //         for (int i = 0; i < config->getOldBinSize(stage); i++)
-    //         {
-    //             timeSignal[ (stageJumpFactor*i+(*delayIterator))%config->getSignalLength() ] = subSampledSignal[i];
-    //             // std::cout << "---- sample: " << i << std::endl;
-    //             // std::cout << "time signal:" << timeSignal[ (stageJumpFactor*i+(*delayIterator))%config->getSignalLength() ] << std::endl;
-    //             // std::cout << "new one: " << subSampledSignal[i] << std::endl;
-    //         }
-    //     }
-    // }
+    // unimplemented
 }
 
 void ExperimentInput::findNeededSamples(std::vector<int> delays)

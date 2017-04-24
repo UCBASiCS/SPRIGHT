@@ -4,7 +4,6 @@
 #include "backend.h"
 #include "chrono.h"
 #include "config.h"
-#include "fftw.h"
 #include "frontend.h"
 #include "input.h"
 #include "output.h"

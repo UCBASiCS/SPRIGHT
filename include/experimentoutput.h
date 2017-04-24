@@ -8,7 +8,6 @@
 #include "output.h"
 #include "experimentinput.h"
 
-#include <fftw3.h>
 #include <set>
 #include <vector>
 #include <map>
@@ -69,7 +68,6 @@ private:
     void setGlobalResultsFigures();
     template <class tempVector>
     void setAverageAndMax(tempVector& array, ffast_real& average, ffast_real& max, int* counter = NULL);
-    ffast_complex* getClusteredFrequencies();
 };
 
 #endif // EXPERIMENTOUTPUT_H
